@@ -1,0 +1,13 @@
+extends layout
+
+block content
+  h1= title
+  p Welcome to #{title}
+  p ef4fb8c14ff34e9ba638f0b14190ef5e
+  p AgAAAABGJaNDAAHlKIfNtDVr5kFlq74xc1rsfxI - accessToken
+
+  <div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="Введите поисковый запрос" aria-label="Введите поисковый запрос" id='phrase' aria-describedby="button-addon2" autocomplete="off">
+    <button class="btn btn-outline-secondary" type="button" id="search">Поиск</button>
+  </div>
+  script(src="/javascripts/api.js") 
