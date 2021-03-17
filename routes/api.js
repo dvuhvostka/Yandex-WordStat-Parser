@@ -43,7 +43,7 @@ class WordStatParse {
                     // Работа с ошибкой
                     console.log(err);
                 })
-            return result;
+            return result.data;
         }
 
     async GetWordstatReportList() {
@@ -88,25 +88,13 @@ class WordStatParse {
         }
 
         async GetWordstatReport(reportId) {
-            let body = {
-                "method": "GetWordstatReport",
-                "param" : reportId,
-                "token" : token
-            }
-    
-            this.options.body = body;
-    
-            let reportList = await this.GetWordstatReportList();
-            let ourReport = await reportList.data.filter((element, index) => {
-                if(element.ReportID == reportId){
-                    return element.ReportID;
+            const body = {
+                    "method": "GetWordstatReport",
+                    "param" : reportId,
+                    "token" : token
                 }
-            });
 
-            if(ourReport.length>0) {
-                console.log('Репорт найден');
-            }
-
+            this.options.body = body;
             let result = await request(this.options)
                 .then(function (response) {
                     // Обработка ответа
@@ -127,46 +115,49 @@ class WordStatParse {
 
 }
 
-const options = {
-    method: 'POST',
-    uri: url,
-    body: {
-        "method": "GetWordstatReport",
-        "param" : 771009682,
-        "token" : token
-    },
-    json: true
-    // Тело запроса приводится к формату JSON автоматически
-  }
-
-async function GetWordstatReport(reportId) {
-    let data = new WordStatParse(['Холодильник'], []);
-    let reportList = await data.GetWordstatReportList();
-    let ourReport = await reportList.data.filter((element, index) => {
-        if(element.ReportID == reportId){
-            return element.ReportID;
+async function deleteAllReports(){
+    let data = new WordStatParse([''], []);
+    let allReports = await data.GetWordstatReportList();
+        if(allReports.data.length>4){
+            deleteAllReports();
         }
-    });
-
-    if(ourReport.length>0) {
-        console.log('Репорт найден');
-    }
-
-    let result = await request(options)
-        .then(function (response) {
-            // Обработка ответа
-            console.log(response);
-            return response;
-        })
-        .catch(function (err) {
-            console.log(err);
-        })
-    return result;
+    data.deleteAllReports();
 }
 
-function deleteAllReports(){
-    let data = new WordStatParse([''], []);
-    data.deleteAllReports();
+async function waiting(data, newReport){
+    let allReports = await data.GetWordstatReportList();
+    allReports.data.forEach((element)=>{
+        if(element.ReportID == newReport){
+            if(element.StatusReport == 'Done'){
+                console.log(element);
+                console.log('Отчет готов!');
+                return true;
+            }
+            else{
+                console.log(element);
+                console.log('Отчёт еще не готов.');
+                return false;
+            }
+        }
+    });
+}
+
+async function dataRequest(data, newReport){
+    let res = await data.GetWordstatReport(newReport);
+    console.log(res['data'][0].SearchedWith);
+}
+
+async function getData(phrase) {
+    await deleteAllReports();
+    let data = new WordStatParse([phrase], []);
+    let newReport = await data.CreateNewWordstatReport();
+
+    const intervalObj = setInterval(()=>{
+        if(waiting(data, newReport)){
+            dataRequest(data,newReport);
+            clearInterval(intervalObj);
+        }
+    }, 10000);
 }
 
 router.post('/', function(req, res, next) {
@@ -174,7 +165,10 @@ router.post('/', function(req, res, next) {
         case 'new_search': {
             console.log('New search accepted:');
             console.log(req.body.phrase);
-            GetWordstatReport(771009682);
+
+            getData(req.body.phrase);
+            //GetWordstatReport(771009682);
+
             res.json({
                 ok: true
             })
